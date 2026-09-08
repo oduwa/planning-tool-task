@@ -167,7 +167,9 @@ async def build_policy_index(
     logger.info(f"Extracted {len(chunks)} chunks; embedding with {cfg.embed_model}")
 
     embedder = Embedder(cfg.embed_model)
-    vectors = embedder.embed([chunk.text for chunk in chunks])
+    vectors = embedder.embed(
+        [chunk.text for chunk in chunks], batch_size=64, log_every=512
+    )
 
     index_dir.mkdir(parents=True, exist_ok=True)
     np.save(vectors_path, vectors)
