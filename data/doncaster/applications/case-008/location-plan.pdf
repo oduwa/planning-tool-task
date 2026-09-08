@@ -1,0 +1,259 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<<
+/Producer (pypdf)
+/Author (John Smith)
+/Company (Example Planning Ltd)
+/Creator (Example Planning Ltd)
+/Title (Application supporting document)
+/Subject (Candidate assessment sample)
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Count 1
+/Kids [ 4 0 R ]
+>>
+endobj
+3 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+4 0 obj
+<<
+/Contents 5 0 R
+/MediaBox [ 0 0 595.2756 841.8898 ]
+/Resources <<
+/Font 6 0 R
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Rotate 0
+/Trans <<
+>>
+/Type /Page
+/Parent 2 0 R
+>>
+endobj
+5 0 obj
+<<
+/Length 2547
+>>
+stream
+1 0 0 1 0 0 cm
+BT
+/F1 12 Tf
+14.4 TL
+ET
+0.133333 0.133333 0.133333 rg
+BT
+/F2 20 Tf
+24 TL
+ET
+BT
+1 0 0 1 59.52756 773.8583 Tm
+(SD) Tj
+T*
+ET
+BT
+/F2 10 Tf
+12 TL
+ET
+BT
+1 0 0 1 113.3858 781.8583 Tm
+(SOUTH DONSHIRE PLANNING AUTHORITY) Tj
+T*
+ET
+BT
+/F1 8 Tf
+9.6 TL
+ET
+0.333333 0.333333 0.333333 rg
+BT
+1 0 0 1 113.3858 768.8583 Tm
+(Development Management \174 Supporting Document) Tj
+T*
+ET
+0.133333 0.133333 0.133333 rg
+BT
+/F2 16 Tf
+19.2 TL
+ET
+BT
+1 0 0 1 59.52756 708.6614 Tm
+(Application Drawing) Tj
+T*
+ET
+BT
+/F2 8 Tf
+9.6 TL
+ET
+0.333333 0.333333 0.333333 rg
+BT
+1 0 0 1 59.52756 674.6457 Tm
+(APPLICATION REFERENCE 94\05662735\056OUT) Tj
+T*
+ET
+BT
+1 0 0 1 59.52756 654.8031 Tm
+(SITE 74 Market Lane\054 Bessacarr\054 Doncaster\054 ZZ63 7KS) Tj
+T*
+ET
+0.4 0.4 0.4 rg
+0.811765 0.811765 0.811765 RG
+n
+59.52756 399.685 476.2205 206.9291 re
+S
+BT
+/F2 14 Tf
+16.8 TL
+ET
+BT
+1 0 0 1 208.1988 544.252 Tm
+(DRAWING PLACEHOLDER) Tj
+T*
+ET
+BT
+/F1 9 Tf
+10.8 TL
+ET
+0.133333 0.133333 0.133333 rg
+BT
+1 0 0 1 93.54331 501.7323 Tm
+(Application drawing\072 Location Plan \055 ) Tj
+T*
+ET
+0 0 0 rg
+n
+239.1093 500.2323 44 8.5 re
+f*
+0.133333 0.133333 0.133333 rg
+BT
+1 0 0 1 285.1093 501.7323 Tm
+(\056) Tj
+T*
+ET
+BT
+1 0 0 1 93.54331 484.7244 Tm
+(Application reference\072 94\05662735\056OUT\056) Tj
+T*
+ET
+BT
+1 0 0 1 93.54331 467.7165 Tm
+(Site\072 74 Market Lane\054 Bessacarr\054 Doncaster\054 ZZ63 7KS\056) Tj
+T*
+ET
+BT
+1 0 0 1 93.54331 445.0394 Tm
+(A drawing\055plan generator will be added later\056 This placeholder preserves the source document) Tj
+T*
+ET
+BT
+1 0 0 1 93.54331 430.8661 Tm
+(slot without reproducing drawing content\056) Tj
+T*
+ET
+0.133333 0.133333 0.133333 rg
+BT
+/F2 10 Tf
+12 TL
+ET
+BT
+1 0 0 1 59.52756 351.4961 Tm
+(PROPOSAL) Tj
+T*
+ET
+BT
+/F1 9 Tf
+10.8 TL
+ET
+BT
+1 0 0 1 59.52756 328.8189 Tm
+(New detached dormer bungalow to the rear of 74 Market Lane\054 fronting onto Middlefield Road\056) Tj
+T*
+ET
+BT
+1 0 0 1 59.52756 313.2283 Tm
+(This application is identical in external shape\054 scale and site layout to previously granted) Tj
+T*
+ET
+BT
+1 0 0 1 59.52756 297.6378 Tm
+(planning applications \074REDACTED\076 \0502006\051 and \074REDACTED\076 \0502009\051\056 The internal layout has been) Tj
+T*
+ET
+BT
+1 0 0 1 59.52756 282.0472 Tm
+(updated to reflect modern living with open plan kitchen\057dining\057sitting room\054 separate lounge) Tj
+T*
+ET
+BT
+1 0 0 1 59.52756 266.4567 Tm
+(and four bedrooms\056) Tj
+T*
+ET
+BT
+/F1 8 Tf
+9.6 TL
+ET
+0.4 0.4 0.4 rg
+BT
+1 0 0 1 59.52756 51.02362 Tm
+(Not an official planning record\056) Tj
+T*
+ET
+BT
+1 0 0 1 510.396 51.02362 Tm
+(Page 1) Tj
+T*
+ET
+
+endstream
+endobj
+6 0 obj
+<<
+/F1 7 0 R
+/F2 8 0 R
+>>
+endobj
+7 0 obj
+<<
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+/Name /F1
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+8 0 obj
+<<
+/BaseFont /Helvetica-Bold
+/Encoding /WinAnsiEncoding
+/Name /F2
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000219 00000 n 
+0000000278 00000 n 
+0000000327 00000 n 
+0000000526 00000 n 
+0000003125 00000 n 
+0000003166 00000 n 
+0000003273 00000 n 
+trailer
+<<
+/Size 9
+/Root 3 0 R
+/Info 1 0 R
+>>
+startxref
+3385
+%%EOF

@@ -1,0 +1,244 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<<
+/Producer (pypdf)
+/Author (John Smith)
+/Company (Example Planning Ltd)
+/Creator (Example Planning Ltd)
+/Title (Application supporting document)
+/Subject (Candidate assessment sample)
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Count 1
+/Kids [ 4 0 R ]
+>>
+endobj
+3 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+4 0 obj
+<<
+/Contents 5 0 R
+/MediaBox [ 0 0 595.2756 841.8898 ]
+/Resources <<
+/Font 6 0 R
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Rotate 0
+/Trans <<
+>>
+/Type /Page
+/Parent 2 0 R
+>>
+endobj
+5 0 obj
+<<
+/Length 2172
+>>
+stream
+1 0 0 1 0 0 cm
+BT
+/F1 12 Tf
+14.4 TL
+ET
+0.133333 0.133333 0.133333 rg
+BT
+/F2 20 Tf
+24 TL
+ET
+BT
+1 0 0 1 59.52756 773.8583 Tm
+(SD) Tj
+T*
+ET
+BT
+/F2 10 Tf
+12 TL
+ET
+BT
+1 0 0 1 113.3858 781.8583 Tm
+(SOUTH DONSHIRE PLANNING AUTHORITY) Tj
+T*
+ET
+BT
+/F1 8 Tf
+9.6 TL
+ET
+0.333333 0.333333 0.333333 rg
+BT
+1 0 0 1 113.3858 768.8583 Tm
+(Development Management \174 Supporting Document) Tj
+T*
+ET
+0.133333 0.133333 0.133333 rg
+BT
+/F2 16 Tf
+19.2 TL
+ET
+BT
+1 0 0 1 59.52756 708.6614 Tm
+(Application Drawing) Tj
+T*
+ET
+BT
+/F2 8 Tf
+9.6 TL
+ET
+0.333333 0.333333 0.333333 rg
+BT
+1 0 0 1 59.52756 674.6457 Tm
+(APPLICATION REFERENCE 90\05686425\056FUL) Tj
+T*
+ET
+BT
+1 0 0 1 59.52756 654.8031 Tm
+(SITE 17 Northgate Close\054 Balby\054 Doncaster\054 ZZ92 8CM) Tj
+T*
+ET
+0.4 0.4 0.4 rg
+0.811765 0.811765 0.811765 RG
+n
+59.52756 399.685 476.2205 206.9291 re
+S
+BT
+/F2 14 Tf
+16.8 TL
+ET
+BT
+1 0 0 1 208.1988 544.252 Tm
+(DRAWING PLACEHOLDER) Tj
+T*
+ET
+BT
+/F1 9 Tf
+10.8 TL
+ET
+0.133333 0.133333 0.133333 rg
+BT
+1 0 0 1 93.54331 501.7323 Tm
+(Application drawing\072 Site Plan \055 ) Tj
+T*
+ET
+0 0 0 rg
+n
+220.5963 500.2323 44 8.5 re
+f*
+0.133333 0.133333 0.133333 rg
+BT
+1 0 0 1 266.5963 501.7323 Tm
+(\056) Tj
+T*
+ET
+BT
+1 0 0 1 93.54331 484.7244 Tm
+(Application reference\072 90\05686425\056FUL\056) Tj
+T*
+ET
+BT
+1 0 0 1 93.54331 467.7165 Tm
+(Site\072 17 Northgate Close\054 Balby\054 Doncaster\054 ZZ92 8CM\056) Tj
+T*
+ET
+BT
+1 0 0 1 93.54331 445.0394 Tm
+(A drawing\055plan generator will be added later\056 This placeholder preserves the source document) Tj
+T*
+ET
+BT
+1 0 0 1 93.54331 430.8661 Tm
+(slot without reproducing drawing content\056) Tj
+T*
+ET
+0.133333 0.133333 0.133333 rg
+BT
+/F2 10 Tf
+12 TL
+ET
+BT
+1 0 0 1 59.52756 351.4961 Tm
+(PROPOSAL) Tj
+T*
+ET
+BT
+/F1 9 Tf
+10.8 TL
+ET
+BT
+1 0 0 1 59.52756 328.8189 Tm
+(Change of use of the existing single dwellinghouse \050Use Class C3\051 to two self\055contained flats) Tj
+T*
+ET
+BT
+1 0 0 1 59.52756 313.2283 Tm
+(\0502 x C3\051\054 together with the erection of a modest first\055floor rear extension\056) Tj
+T*
+ET
+BT
+/F1 8 Tf
+9.6 TL
+ET
+0.4 0.4 0.4 rg
+BT
+1 0 0 1 59.52756 51.02362 Tm
+(Not an official planning record\056) Tj
+T*
+ET
+BT
+1 0 0 1 510.396 51.02362 Tm
+(Page 1) Tj
+T*
+ET
+
+endstream
+endobj
+6 0 obj
+<<
+/F1 7 0 R
+/F2 8 0 R
+>>
+endobj
+7 0 obj
+<<
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+/Name /F1
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+8 0 obj
+<<
+/BaseFont /Helvetica-Bold
+/Encoding /WinAnsiEncoding
+/Name /F2
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000219 00000 n 
+0000000278 00000 n 
+0000000327 00000 n 
+0000000526 00000 n 
+0000002750 00000 n 
+0000002791 00000 n 
+0000002898 00000 n 
+trailer
+<<
+/Size 9
+/Root 3 0 R
+/Info 1 0 R
+>>
+startxref
+3010
+%%EOF
