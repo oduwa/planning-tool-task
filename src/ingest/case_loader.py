@@ -3,29 +3,24 @@
 The packs deliberately contain traps: every file appears twice (hyphenated and
 underscored) and some drawings/statements ship superseded or refused variants.
 This module collapses duplicates, drops withdrawn versions, and classifies what
-remains so downstream stages know which documents are plans (for the vision
-pass) and which are consultee replies (which carry objections).
+remains so downstream stages know which documents are drawings and which are
+consultee replies (which carry objections).
+
+PDF text is read exclusively from the pre-extracted JSON that ``uv run parser``
+writes under ``data/extracted``. There is no live parsing fallback: if the cache
+is missing, run the parser CLI first.
 """
 
 from __future__ import annotations
 
-import asyncio
 import re
 from enum import StrEnum
 from pathlib import Path
 
-from kreuzberg import (  # type: ignore[attr-defined]
-    ExtractionConfig,
-    ImageExtractionConfig,
-    PageConfig,
-    PdfConfig,
-    ResultFormat,
-)
 from loguru import logger
 from pydantic import BaseModel, Field
 
 from parser.document import PdfDocument
-from parser.parser import extract_pdf_document
 from paths import extracted_json_path
 
 SUPERSEDED_MARKERS = ("superseded", "refused", "withdrawn", "old", "previous")
@@ -56,7 +51,7 @@ class CaseDocument(BaseModel):
     filename: str
     document: PdfDocument
     is_plan: bool = Field(
-        default=False, description="Whether this is a drawing suited to a vision pass"
+        default=False, description="Whether this is a drawing (elevation/site/floor plan)"
     )
 
     @property
@@ -88,16 +83,6 @@ class CasePack(BaseModel):
     def plans(self) -> list[CaseDocument]:
         """Return documents that are drawings (elevations, site, floor plans)."""
         return [doc for doc in self.documents if doc.is_plan]
-
-
-def _text_only_config() -> ExtractionConfig:
-    """Build a lightweight text-only extraction config for non-plan documents."""
-    return ExtractionConfig(
-        result_format=ResultFormat.ELEMENT_BASED,
-        pages=PageConfig(extract_pages=True),
-        images=ImageExtractionConfig(extract_images=False),
-        pdf_options=PdfConfig(extract_metadata=True),
-    )
 
 
 def _normalized_stem(filename: str) -> str:
@@ -179,30 +164,22 @@ def _cached_json_path(path: Path) -> Path | None:
     return candidate if candidate.is_file() else None
 
 
-async def _parse(path: Path, *, plan: bool, use_cache: bool) -> PdfDocument:
-    """Load a PDF from the parser cache, else parse it live.
-
-    Cached documents come from ``uv run parser`` (default config, so they always
-    include images); the vision stage simply ignores images on non-plan docs.
+def _load_cached(path: Path) -> PdfDocument:
+    """Load a PDF's pre-extracted JSON from the ``uv run parser`` cache.
 
     Args:
-        path: Path to the PDF.
-        plan: Whether this is a drawing that needs image extraction.
-        use_cache: Whether to prefer pre-extracted JSON under ``data/extracted``.
+        path: Path to the source PDF.
+
+    Raises:
+        FileNotFoundError: If no cache entry exists for the PDF.
+        ValueError: If the cached JSON cannot be parsed.
     """
-    if use_cache:
-        cache_path = _cached_json_path(path)
-        if cache_path is not None:
-            try:
-                return PdfDocument.model_validate_json(
-                    cache_path.read_text(encoding="utf-8")
-                )
-            except (ValueError, OSError) as error:
-                logger.warning(
-                    f"Ignoring unreadable parser cache {cache_path.name}: {error}"
-                )
-    config = None if plan else _text_only_config()
-    return await extract_pdf_document(path, config=config)
+    cache_path = _cached_json_path(path)
+    if cache_path is None:
+        raise FileNotFoundError(
+            f"No parser cache for {path.name}. Run `uv run parser` first."
+        )
+    return PdfDocument.model_validate_json(cache_path.read_text(encoding="utf-8"))
 
 
 def _select_survivors(case_dir: Path) -> tuple[list[Path], list[str]]:
@@ -232,39 +209,40 @@ def _select_survivors(case_dir: Path) -> tuple[list[Path], list[str]]:
     return sorted(survivors), sorted(dropped)
 
 
-async def load_case_pack(case_dir: Path, *, use_cache: bool = True) -> CasePack:
-    """Load, de-duplicate, classify, and parse a case application pack.
+async def load_case_pack(case_dir: Path) -> CasePack:
+    """Load, de-duplicate, and classify a case pack from the parser cache.
+
+    PDF text comes entirely from the JSON written by ``uv run parser`` under
+    ``data/extracted``; there is no live parsing fallback.
 
     Args:
         case_dir: Directory containing the raw application PDFs.
-        use_cache: Prefer pre-extracted JSON from ``uv run parser`` when present,
-            falling back to live parsing for any file missing from the cache.
 
     Raises:
-        FileNotFoundError: If the directory does not exist.
+        FileNotFoundError: If the directory does not exist, or if any kept
+            document is missing from the parser cache.
     """
     if not case_dir.is_dir():
         raise FileNotFoundError(f"Case directory not found: {case_dir}")
 
     survivors, dropped = _select_survivors(case_dir)
-    cached = sum(1 for p in survivors if use_cache and _cached_json_path(p) is not None)
+
+    missing = [p.name for p in survivors if _cached_json_path(p) is None]
+    if missing:
+        raise FileNotFoundError(
+            f"{case_dir.name}: {len(missing)} document(s) missing from the parser "
+            f"cache under data/extracted. Run `uv run parser` to generate it. "
+            f"Missing: {', '.join(sorted(missing))}"
+        )
+
     logger.info(
         f"{case_dir.name}: {len(survivors)} documents kept, {len(dropped)} dropped, "
-        f"{cached} loaded from parser cache"
-    )
-
-    is_plan_flags = [
-        classify_document(path.name, "") in PLAN_TYPES for path in survivors
-    ]
-    parsed = await asyncio.gather(
-        *(
-            _parse(path, plan=plan, use_cache=use_cache)
-            for path, plan in zip(survivors, is_plan_flags, strict=True)
-        )
+        f"all loaded from parser cache"
     )
 
     documents: list[CaseDocument] = []
-    for path, document in zip(survivors, parsed, strict=True):
+    for path in survivors:
+        document = _load_cached(path)
         doc_type = classify_document(path.name, document.text)
         documents.append(
             CaseDocument(
