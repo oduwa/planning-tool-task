@@ -13,8 +13,10 @@ stage is a small, independently testable module.
    preferring a live version over a superseded one. Every dropped file is recorded for
    the audit trail. Surviving documents are classified (application form, design &
    access statement, heritage/flood statements, elevations, site/floor plans,
-   consultation replies), which drives both the vision pass and later weighting of
-   consultee objections. Only drawings are parsed with image extraction, to save work.
+   consultation replies), which drives what text is assembled for extraction and the
+   later weighting of consultee objections. PDFs are extracted once with the provided
+   `uv run parser` (cached under `data/extracted`); ingestion loads that cache and
+   falls back to live parsing on a miss.
 
 2. **Site constraints (`src/tools/geospatial.py`, provided).** `postcode_lookup`
    returns deterministic constraints — flood zone, conservation area, green belt,
@@ -22,12 +24,13 @@ stage is a small, independently testable module.
    as a callable tool. Unknown postcodes are treated as "cannot confirm", never as
    "unconstrained".
 
-3. **Case profile, incl. vision (`src/assessment/profile.py`).** A text pass over the
-   form, statements, and consultation replies extracts a structured `CaseProfile`
-   (proposal, address/postcode, application type, consultee positions, drawing
-   references). A **vision pass** sends the drawing images to a vision model to recover
-   ridge/eaves heights, storeys, separation distances, parking, and title-block drawing
-   references that the text usually omits. The two are merged.
+3. **Case profile (`src/assessment/profile.py`).** A single text pass extracts a
+   structured `CaseProfile` (proposal, address/postcode, application type, consultee
+   positions, key dimensions, drawing references). The application drawings are vector
+   CAD sheets with no embedded raster images, but their extracted text carries the
+   load-bearing facts — opening/gate widths, heights, materials, and title-block drawing
+   numbers/revisions — so the drawing documents are included in the assembled text
+   rather than read with a separate vision pass.
 
 4. **Policy retrieval — embeddings RAG (`src/policy/`).** The ~100 MB policy corpus
    (NPPF, legislation, Doncaster Local Plan, SPDs, conservation-area appraisals) is far
@@ -65,10 +68,9 @@ written and makes the reasons list align with the evaluator's semantic matching;
 determinism at the decision boundary keeps the outcome transparent and reproducible,
 which the brief calls out as essential.
 
-**Models are configurable.** Chat, vision, and embedding models are all set via
-environment variables (`PLANNING_CHAT_MODEL`, `PLANNING_VISION_MODEL`,
-`PLANNING_EMBED_MODEL`) with cheap-but-capable defaults, so a stronger model can be
-swapped in without code changes.
+**Models are configurable.** The chat and embedding models are set via environment
+variables (`PLANNING_CHAT_MODEL`, `PLANNING_EMBED_MODEL`) with cheap-but-capable
+defaults, so a stronger model can be swapped in without code changes.
 
 ## How to run
 
