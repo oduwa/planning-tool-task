@@ -12,6 +12,9 @@ DATA_DIR = REPO_ROOT / "data"
 APPLICATIONS_DIR = DATA_DIR / "doncaster" / "applications"
 DECISIONS_DIR = DATA_DIR / "doncaster" / "decisions"
 
+# Where `uv run parser` writes mirrored, pre-extracted PDF JSON.
+EXTRACTED_DIR = DATA_DIR / "extracted"
+
 NATIONAL_POLICY_DIR = DATA_DIR / "national_policy"
 LOCAL_POLICY_DIR = DATA_DIR / "local_policy"
 SPDS_DIR = LOCAL_POLICY_DIR / "spds"
@@ -50,3 +53,19 @@ def prediction_path(case_id: str) -> Path:
         case_id: Case identifier such as ``case-006``.
     """
     return PREDICTIONS_DIR / f"{case_id}-prediction.json"
+
+
+def extracted_json_path(pdf_path: Path) -> Path:
+    """Return the cached JSON path that ``uv run parser`` writes for a PDF.
+
+    The batch parser mirrors the ``data/`` tree under ``data/extracted`` and
+    swaps the ``.pdf`` suffix for ``.json``.
+
+    Args:
+        pdf_path: Path to a source PDF located under the data directory.
+
+    Raises:
+        ValueError: If ``pdf_path`` is not located under the data directory.
+    """
+    relative = pdf_path.resolve().relative_to(DATA_DIR.resolve())
+    return EXTRACTED_DIR / relative.with_suffix(".json")

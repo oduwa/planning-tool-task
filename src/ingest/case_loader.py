@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field
 
 from parser.document import PdfDocument
 from parser.parser import extract_pdf_document
+from paths import extracted_json_path
 
 SUPERSEDED_MARKERS = ("superseded", "refused", "withdrawn", "old", "previous")
 
@@ -165,13 +166,41 @@ def classify_document(filename: str, text: str) -> DocType:
     return DocType.OTHER
 
 
-async def _parse(path: Path, *, plan: bool) -> PdfDocument:
-    """Parse a PDF, extracting images only for plan documents.
+def _cached_json_path(path: Path) -> Path | None:
+    """Return the ``uv run parser`` cache path for a PDF if it exists.
+
+    Args:
+        path: Path to the source PDF.
+    """
+    try:
+        candidate = extracted_json_path(path)
+    except ValueError:
+        return None
+    return candidate if candidate.is_file() else None
+
+
+async def _parse(path: Path, *, plan: bool, use_cache: bool) -> PdfDocument:
+    """Load a PDF from the parser cache, else parse it live.
+
+    Cached documents come from ``uv run parser`` (default config, so they always
+    include images); the vision stage simply ignores images on non-plan docs.
 
     Args:
         path: Path to the PDF.
         plan: Whether this is a drawing that needs image extraction.
+        use_cache: Whether to prefer pre-extracted JSON under ``data/extracted``.
     """
+    if use_cache:
+        cache_path = _cached_json_path(path)
+        if cache_path is not None:
+            try:
+                return PdfDocument.model_validate_json(
+                    cache_path.read_text(encoding="utf-8")
+                )
+            except (ValueError, OSError) as error:
+                logger.warning(
+                    f"Ignoring unreadable parser cache {cache_path.name}: {error}"
+                )
     config = None if plan else _text_only_config()
     return await extract_pdf_document(path, config=config)
 
@@ -203,11 +232,13 @@ def _select_survivors(case_dir: Path) -> tuple[list[Path], list[str]]:
     return sorted(survivors), sorted(dropped)
 
 
-async def load_case_pack(case_dir: Path) -> CasePack:
+async def load_case_pack(case_dir: Path, *, use_cache: bool = True) -> CasePack:
     """Load, de-duplicate, classify, and parse a case application pack.
 
     Args:
         case_dir: Directory containing the raw application PDFs.
+        use_cache: Prefer pre-extracted JSON from ``uv run parser`` when present,
+            falling back to live parsing for any file missing from the cache.
 
     Raises:
         FileNotFoundError: If the directory does not exist.
@@ -216,8 +247,10 @@ async def load_case_pack(case_dir: Path) -> CasePack:
         raise FileNotFoundError(f"Case directory not found: {case_dir}")
 
     survivors, dropped = _select_survivors(case_dir)
+    cached = sum(1 for p in survivors if use_cache and _cached_json_path(p) is not None)
     logger.info(
-        f"{case_dir.name}: {len(survivors)} documents kept, {len(dropped)} dropped"
+        f"{case_dir.name}: {len(survivors)} documents kept, {len(dropped)} dropped, "
+        f"{cached} loaded from parser cache"
     )
 
     is_plan_flags = [
@@ -225,7 +258,7 @@ async def load_case_pack(case_dir: Path) -> CasePack:
     ]
     parsed = await asyncio.gather(
         *(
-            _parse(path, plan=plan)
+            _parse(path, plan=plan, use_cache=use_cache)
             for path, plan in zip(survivors, is_plan_flags, strict=True)
         )
     )

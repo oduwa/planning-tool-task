@@ -220,3 +220,6 @@ __marimo__/
 # Planning tool: cached policy index and generated officer drafts
 .policy_index/
 drafts/
+
+# Planning tool: pre-extracted PDF JSON from `uv run parser`
+data/extracted/
