@@ -25,7 +25,7 @@ from loguru import logger
 from openai import AsyncOpenAI
 
 from assessment.schema import THEME_ORDER, CaseAssessment, CaseProfile
-from llm import ModelConfig, complete_json
+from llm import ModelConfig, complete_json, sampling_params
 from policy.retriever import PolicyRetriever
 from tools.geospatial import postcode_lookup
 
@@ -213,11 +213,10 @@ async def assess_case(
         response = await client.chat.completions.create(  # type: ignore[call-overload]
             model=cfg.reasoning_model,
             messages=messages,
-            temperature=cfg.temperature,
-            seed=cfg.seed,
             tools=_TOOLS,
             tool_choice="auto",
             extra_body=extra_body,
+            **sampling_params(cfg.reasoning_model, cfg.temperature, cfg.seed),
         )
         message = response.choices[0].message
         tool_calls = message.tool_calls or []

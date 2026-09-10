@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -45,11 +46,13 @@ class ModelConfig:
     stronger (or cheaper) model can be swapped in per component without code
     changes. Determinism controls (``seed`` and an optional OpenRouter
     ``provider_order`` pin) reduce, though on a hosted API cannot fully eliminate,
-    run-to-run variance.
+    run-to-run variance. They are automatically omitted for o-series reasoning
+    models (e.g. ``openai/o3``), which reject a custom ``temperature`` and ignore
+    ``seed``; those models manage their own internal sampling instead.
     """
 
     profile_model: str = "openai/gpt-4o-mini"
-    reasoning_model: str = "openai/gpt-4o-mini"
+    reasoning_model: str = "openai/o3"
     vision_model: str = "openai/gpt-4o-mini"
     embed_model: str = "BAAI/bge-small-en-v1.5"
     temperature: float = 0.0
@@ -97,6 +100,37 @@ class ModelConfig:
                 "allow_fallbacks": False,
             }
         }
+
+
+def is_reasoning_model(model: str) -> bool:
+    """Return True for OpenAI o-series reasoning models (o1/o3/o4...).
+
+    These models reject a non-default ``temperature`` and do not honour ``seed``,
+    so those sampling parameters must be omitted from the request.
+
+    Args:
+        model: Model id, optionally provider-prefixed (e.g. ``openai/o3``).
+    """
+    name = model.split("/")[-1]
+    return re.match(r"o\d", name) is not None
+
+
+def sampling_params(
+    model: str, temperature: float, seed: int | None
+) -> dict[str, Any]:
+    """Return the sampling kwargs a chat request should send for ``model``.
+
+    For reasoning models this is empty (let the API apply its own defaults); for
+    standard models it carries the configured ``temperature`` and ``seed``.
+
+    Args:
+        model: Model id to call.
+        temperature: Desired sampling temperature.
+        seed: Desired best-effort reproducibility seed, if any.
+    """
+    if is_reasoning_model(model):
+        return {}
+    return {"temperature": temperature, "seed": seed}
 
 
 def get_client() -> AsyncOpenAI:
@@ -193,10 +227,9 @@ async def complete_json[T: BaseModel](
         response = await client.chat.completions.create(  # type: ignore[call-overload]
             model=model,
             messages=messages,
-            temperature=temperature,
             response_format={"type": "json_object"},
-            seed=seed,
             extra_body=extra_body,
+            **sampling_params(model, temperature, seed),
         )
         content = response.choices[0].message.content or ""
         try:

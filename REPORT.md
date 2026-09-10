@@ -105,14 +105,16 @@ differ in difficulty, and every value is env-overridable:
 |---|---|---|
 | `profile_model` | `openai/gpt-4o-mini` | structured extraction from clean text — easy, cheap |
 | `vision_model` | `openai/gpt-4o-mini` (vision-capable) | reads rasterised CAD; upgrade to a larger vision model for hard sheets |
-| `reasoning_model` | `openai/gpt-4o-mini` | the hard judgment step — **the first place to upgrade** for accuracy |
+| `reasoning_model` | `openai/o3` | the hard, high-stakes judgment step gets a dedicated reasoning model |
 | `embed_model` | `BAAI/bge-small-en-v1.5` (local) | runs offline; no per-query cost; OpenRouter has no reliable embeddings endpoint |
-| judge (eval only) | `openai/gpt-4o-mini` | kept separate from the system under test to avoid grading itself |
+| judge (eval only) | `openai/o3` | strong, separate reasoning model to grade reasons semantically without grading itself |
 
-The mini defaults are a deliberate **cost choice for the restricted key**, not a
-recommendation: the architecture expects a stronger `reasoning_model` in production and
-makes that a one-line env change. Embeddings are intentionally local and will not be
-"upgraded" to a hosted model.
+The cheap `mini` models are kept for the easy extraction/vision steps while the hard
+judgment and evaluation steps use `openai/o3`. Because o-series reasoning models reject a
+custom `temperature` and ignore `seed`, `sampling_params()` automatically omits those
+parameters for them (detected via `is_reasoning_model`) and lets the model manage its own
+internal sampling; the provider-pin still applies. Embeddings are intentionally local and
+will not be "upgraded" to a hosted model.
 
 ### 1.8 Determinism
 

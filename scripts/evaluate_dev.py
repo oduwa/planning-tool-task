@@ -42,7 +42,7 @@ from pipeline import CaseResult, run_case_detailed  # noqa: E402
 from policy.retriever import PolicyRetriever  # noqa: E402
 
 JUDGE_MODEL_ENV = "PLANNING_JUDGE_MODEL"
-DEFAULT_JUDGE_MODEL = "openai/gpt-4o-mini"
+DEFAULT_JUDGE_MODEL = "openai/o3"
 EVAL_DIR = REPO_ROOT / "evaluation"
 
 
