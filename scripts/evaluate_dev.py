@@ -37,6 +37,38 @@ def _training_cases() -> list[str]:
     return sorted(path.name for path in DECISIONS_DIR.iterdir() if path.is_dir())
 
 
+def _format_decision(decision: Decision) -> str:
+    """Render a decision's outcome, reasons, and conditions as an indented block.
+
+    Args:
+        decision: The decision to render.
+    """
+    lines = [f"  outcome: {decision.decision.value}"]
+    lines.append(f"  reasons ({len(decision.reasons)}):")
+    lines.extend(f"    - {reason}" for reason in decision.reasons)
+    lines.append(f"  conditions ({len(decision.conditions)}):")
+    lines.extend(f"    - {condition}" for condition in decision.conditions)
+    return "\n".join(lines)
+
+
+def _log_comparison(case_id: str, predicted: Decision, expected: Decision) -> None:
+    """Print the model output next to the ground truth for a case.
+
+    Args:
+        case_id: Case identifier.
+        predicted: The pipeline's predicted decision.
+        expected: The ground-truth decision.
+    """
+    print(f"\n{'=' * 70}")  # noqa: T201
+    print(f"{case_id}: model output vs. ground truth")  # noqa: T201
+    print(f"{'-' * 70}")  # noqa: T201
+    print("[PREDICTED]")  # noqa: T201
+    print(_format_decision(predicted))  # noqa: T201
+    print("[GROUND TRUTH]")  # noqa: T201
+    print(_format_decision(expected))  # noqa: T201
+    print(f"{'=' * 70}")  # noqa: T201
+
+
 async def _evaluate(cases: list[str]) -> None:
     """Run and score the pipeline for the given training cases.
 
@@ -55,6 +87,7 @@ async def _evaluate(cases: list[str]) -> None:
             decision_path(case_id).read_text(encoding="utf-8")
         )
         predicted = await run_case(case_id, cfg, retriever)
+        _log_comparison(case_id, predicted, expected)
         scores = await evaluator.ascore_item(case_id, expected, predicted)
         print(  # noqa: T201
             f"{case_id}: decision_match={scores['decision_match']} "
