@@ -27,31 +27,76 @@ DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 
 @dataclass(frozen=True)
 class ModelConfig:
-    """Configurable model selection for the pipeline.
+    """Per-component model selection and sampling controls for the pipeline.
 
-    All values are overridable via environment variables so the models can be
-    swapped without code changes. Defaults are cheap-but-capable choices for
-    development.
+    Model choice is deliberately made *per component* rather than once for the
+    whole system, because the components have different difficulty:
+
+    - ``profile_model``: structured fact extraction from mostly clean text — an
+      easy task where a small, cheap model is appropriate.
+    - ``vision_model``: reading rasterised CAD drawings (dimensions, layout) — a
+      genuinely multimodal task that needs a capable vision model.
+    - ``reasoning_model``: the material-consideration judgment and refusal logic —
+      the hard, high-stakes step that warrants the strongest available model.
+    - ``embed_model``: a local sentence-embedding model for policy retrieval; runs
+      offline, so there is no per-query cost and no reason to call a hosted model.
+
+    Every value is overridable via ``PLANNING_*`` environment variables so a
+    stronger (or cheaper) model can be swapped in per component without code
+    changes. Determinism controls (``seed`` and an optional OpenRouter
+    ``provider_order`` pin) reduce, though on a hosted API cannot fully eliminate,
+    run-to-run variance.
     """
 
-    chat_model: str = "openai/gpt-4o-mini"
+    profile_model: str = "openai/gpt-4o-mini"
+    reasoning_model: str = "openai/gpt-4o-mini"
     vision_model: str = "openai/gpt-4o-mini"
     embed_model: str = "BAAI/bge-small-en-v1.5"
     temperature: float = 0.0
-    max_vision_images: int = 8
+    seed: int | None = 7
+    enable_vision: bool = True
+    max_vision_pages: int = 6
+    provider_order: tuple[str, ...] = ()
 
     @classmethod
     def from_env(cls) -> ModelConfig:
         """Build a config, applying ``PLANNING_*`` environment overrides."""
+        provider_raw = os.getenv("PLANNING_PROVIDER_ORDER", "")
+        provider_order = tuple(
+            part.strip() for part in provider_raw.split(",") if part.strip()
+        )
+        seed_raw = os.getenv("PLANNING_SEED", str(cls.seed))
+        seed = None if seed_raw.lower() in {"", "none"} else int(seed_raw)
         return cls(
-            chat_model=os.getenv("PLANNING_CHAT_MODEL", cls.chat_model),
+            profile_model=os.getenv("PLANNING_PROFILE_MODEL", cls.profile_model),
+            reasoning_model=os.getenv("PLANNING_REASONING_MODEL", cls.reasoning_model),
             vision_model=os.getenv("PLANNING_VISION_MODEL", cls.vision_model),
             embed_model=os.getenv("PLANNING_EMBED_MODEL", cls.embed_model),
             temperature=float(os.getenv("PLANNING_TEMPERATURE", str(cls.temperature))),
-            max_vision_images=int(
-                os.getenv("PLANNING_MAX_VISION_IMAGES", str(cls.max_vision_images))
+            seed=seed,
+            enable_vision=os.getenv("PLANNING_ENABLE_VISION", "1").lower()
+            not in {"0", "false", "no"},
+            max_vision_pages=int(
+                os.getenv("PLANNING_MAX_VISION_PAGES", str(cls.max_vision_pages))
             ),
+            provider_order=provider_order,
         )
+
+    def provider_extra_body(self) -> dict[str, Any] | None:
+        """Return an OpenRouter ``extra_body`` provider pin, if one is configured.
+
+        Pinning the backend provider (and disabling fallbacks) is the strongest
+        reproducibility lever available on OpenRouter: it keeps every request on
+        the same hardware/build so greedy decoding stays stable.
+        """
+        if not self.provider_order:
+            return None
+        return {
+            "provider": {
+                "order": list(self.provider_order),
+                "allow_fallbacks": False,
+            }
+        }
 
 
 def get_client() -> AsyncOpenAI:
@@ -107,6 +152,8 @@ async def complete_json[T: BaseModel](
     *,
     image_uris: list[str] | None = None,
     temperature: float = 0.0,
+    seed: int | None = None,
+    extra_body: dict[str, Any] | None = None,
     max_retries: int = 2,
 ) -> T:
     """Call chat completions and parse the reply into a Pydantic model.
@@ -148,6 +195,8 @@ async def complete_json[T: BaseModel](
             messages=messages,
             temperature=temperature,
             response_format={"type": "json_object"},
+            seed=seed,
+            extra_body=extra_body,
         )
         content = response.choices[0].message.content or ""
         try:

@@ -1,10 +1,19 @@
-"""Theme-by-theme assessment via a tool-calling loop.
+"""Theme-by-theme assessment via an iterative, tool-calling research loop.
 
-The agent is given the case profile and site constraints, plus two tools:
-``policy_search`` (semantic retrieval over the policy index) and
-``postcode_lookup`` (deterministic site constraints). It makes as many policy
-lookups as it needs — mirroring how an officer consults multiple policies — then
-emits a structured, per-theme assessment with citations.
+The agent is given the case profile and site constraints, plus three tools:
+
+- ``policy_search`` — diverse semantic retrieval over the whole policy corpus
+  (Local Plan, SPDs, conservation-area appraisals, NPPF, legislation);
+- ``policy_lookup`` — pull a *named* policy or paragraph in full, so a citation
+  can be read before it is relied on;
+- ``postcode_lookup`` — deterministic site constraints.
+
+It is prompted to investigate iteratively — search, read, and if the evidence is
+inconclusive refine the query or look a policy up directly — mirroring how an
+officer makes multiple lookups across policies before concluding. Only once the
+research is done does it emit the structured, per-theme assessment with citations.
+The instructions deliberately guard against the approval bias seen in planning
+LLMs: refusal is a first-class outcome and consultee objections must be engaged.
 """
 
 from __future__ import annotations
@@ -20,7 +29,7 @@ from llm import ModelConfig, complete_json
 from policy.retriever import PolicyRetriever
 from tools.geospatial import postcode_lookup
 
-MAX_TOOL_ITERATIONS = 14
+MAX_TOOL_ITERATIONS = 16
 SEARCH_K = 6
 
 _TOOLS: list[dict[str, Any]] = [
@@ -29,9 +38,11 @@ _TOOLS: list[dict[str, Any]] = [
         "function": {
             "name": "policy_search",
             "description": (
-                "Semantic search over the Doncaster Local Plan, SPDs, and national "
-                "policy (NPPF, legislation). Use it to find the specific policies and "
-                "paragraphs that apply to a planning theme, so findings can cite them."
+                "Semantic search over the full Doncaster policy corpus (Local Plan, "
+                "SPDs, conservation-area appraisals) and national policy (NPPF, "
+                "legislation). Returns diverse passages. Use it to find the policies "
+                "and paragraphs that apply to a theme. Search repeatedly with refined "
+                "queries when the first results are inconclusive."
             ),
             "parameters": {
                 "type": "object",
@@ -42,6 +53,28 @@ _TOOLS: list[dict[str, Any]] = [
                     }
                 },
                 "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "policy_lookup",
+            "description": (
+                "Retrieve every passage that mentions a specific named policy or "
+                "paragraph, e.g. 'Policy 44' or 'NPPF paragraph 135'. Use this to "
+                "read a policy in full before citing it, and to confirm a policy "
+                "actually exists before relying on it."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reference": {
+                        "type": "string",
+                        "description": "A citation such as 'Policy 13' or 'paragraph 135'.",
+                    }
+                },
+                "required": ["reference"],
             },
         },
     },
@@ -67,24 +100,36 @@ _TOOLS: list[dict[str, Any]] = [
 
 _SYSTEM = (
     "You are a UK planning officer for Doncaster Council assessing a housing "
-    "application. Work through each material consideration in turn: principle of "
-    "development, design and character, heritage, residential amenity, highways and "
-    "parking, flood risk and drainage, ecology and trees, and contamination and "
-    "environmental health.\n\n"
-    "For every theme, first use the policy_search tool to find the exact Local Plan "
-    "policies and NPPF paragraphs that apply, and use postcode_lookup to confirm site "
-    "constraints. Then reach a reasoned judgment. Classify each theme's harm as:\n"
-    "- 'none' when the theme is acceptable;\n"
-    "- 'conditionable' when acceptable subject to a planning condition (provide the "
+    "application on its planning merits. Work through each material consideration "
+    "in turn: principle of development, design and character, heritage, residential "
+    "amenity, highways and parking, flood risk and drainage, ecology and trees, and "
+    "contamination and environmental health.\n\n"
+    "Investigate like an officer, iteratively:\n"
+    "1. For each theme, use policy_search to find the applicable Local Plan policies "
+    "and NPPF paragraphs, and postcode_lookup to establish site constraints.\n"
+    "2. Before you rely on a policy, use policy_lookup to read it in full and confirm "
+    "it says what you think. Never cite a policy you have not seen in the tool "
+    "results.\n"
+    "3. If the evidence is inconclusive, do not guess — refine your query and search "
+    "again, or look up a related policy. Keep digging until you can support a "
+    "judgment with cited text.\n\n"
+    "Classify each theme's harm as:\n"
+    "- 'none' when the theme is genuinely acceptable;\n"
+    "- 'conditionable' when acceptable only subject to a planning condition (state the "
     "condition, ending with a 'Reason:' clause);\n"
     "- 'unresolved' when there is material harm that cannot be conditioned away and "
-    "which would justify refusal;\n"
+    "which justifies refusal;\n"
     "- 'not_applicable' when the theme genuinely does not arise.\n\n"
-    "An application is refused if any theme is 'unresolved', otherwise approved with "
-    "conditions. Write each finding as a self-contained decision-notice paragraph that "
-    "names the policies relied on (e.g. 'in accordance with Doncaster Local Plan "
-    "Policies 13 and 44' or 'contrary to NPPF paragraph 135'). Make multiple policy "
-    "searches as needed before concluding."
+    "Guard against approval bias. Approval is NOT the default. If a statutory or "
+    "internal consultee objects, you must either resolve that objection with cited "
+    "policy or record the theme as unresolved. A holding objection, an unmet "
+    "standard, or a conflict with an adopted policy that cannot be conditioned away "
+    "is a refusal — say so plainly. Do not soften material harm into a condition to "
+    "avoid refusing. An application is refused if ANY theme is 'unresolved'; "
+    "otherwise it is approved with conditions.\n\n"
+    "Write each finding as a self-contained decision-notice paragraph that names the "
+    "policies relied on (e.g. 'in accordance with Doncaster Local Plan Policies 13 "
+    "and 44' or 'contrary to NPPF paragraph 135')."
 )
 
 
@@ -100,7 +145,15 @@ def _dispatch_tool(
     """
     if name == "policy_search":
         query = str(arguments.get("query", "")).strip()
-        chunks = retriever.search(query, k=SEARCH_K)
+        return PolicyRetriever.format_results(retriever.search(query, k=SEARCH_K))
+    if name == "policy_lookup":
+        reference = str(arguments.get("reference", "")).strip()
+        chunks = retriever.lookup_reference(reference, k=SEARCH_K)
+        if not chunks:
+            return (
+                f"No passage in the policy corpus mentions '{reference}'. Do not cite "
+                "it; find the correct policy with policy_search."
+            )
         return PolicyRetriever.format_results(chunks)
     if name == "postcode_lookup":
         return json.dumps(postcode_lookup(str(arguments.get("postcode", ""))))
@@ -134,7 +187,7 @@ async def assess_case(
     cfg: ModelConfig,
     retriever: PolicyRetriever,
 ) -> CaseAssessment:
-    """Run the tool-calling assessment loop and return per-theme judgments.
+    """Run the iterative tool-calling assessment loop and return per-theme judgments.
 
     Args:
         profile: The extracted case profile.
@@ -142,13 +195,15 @@ async def assess_case(
         cfg: Model configuration.
         retriever: Loaded policy retriever.
     """
+    extra_body = cfg.provider_extra_body()
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": _SYSTEM},
         {
             "role": "user",
             "content": (
-                "Assess this application. Research policy with the tools, then you will "
-                "be asked to produce the structured assessment.\n\n"
+                "Assess this application. Research the policy corpus with the tools "
+                "until every material consideration is supported by cited policy "
+                "text, then you will be asked to produce the structured assessment.\n\n"
                 f"{_profile_brief(profile)}"
             ),
         },
@@ -156,11 +211,13 @@ async def assess_case(
 
     for iteration in range(MAX_TOOL_ITERATIONS):
         response = await client.chat.completions.create(  # type: ignore[call-overload]
-            model=cfg.chat_model,
+            model=cfg.reasoning_model,
             messages=messages,
             temperature=cfg.temperature,
+            seed=cfg.seed,
             tools=_TOOLS,
             tool_choice="auto",
+            extra_body=extra_body,
         )
         message = response.choices[0].message
         tool_calls = message.tool_calls or []
@@ -204,18 +261,20 @@ async def assess_case(
     themes_list = ", ".join(theme.value for theme in THEME_ORDER)
     final = await complete_json(
         client,
-        cfg.chat_model,
+        cfg.reasoning_model,
         CaseAssessment,
         system=_SYSTEM,
         user=(
             "Using everything researched above, output the structured assessment now. "
             f"Include one entry for each applicable theme ({themes_list}). Omit a theme "
             "only if it genuinely does not arise. Each finding must cite the specific "
-            "policies relied on.\n\n"
+            "policies relied on, and only policies that appeared in the tool results.\n\n"
             f"Case briefing again for reference:\n{_profile_brief(profile)}\n\n"
             f"Research transcript:\n{_transcript(messages)}"
         ),
         temperature=cfg.temperature,
+        seed=cfg.seed,
+        extra_body=extra_body,
     )
     return final
 

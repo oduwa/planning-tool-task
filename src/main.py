@@ -9,7 +9,7 @@ from loguru import logger
 
 from llm import ModelConfig
 from paths import POLICY_INDEX_DIR
-from pipeline import run_case, write_outputs
+from pipeline import run_case_detailed, write_outputs
 from policy.index import build_policy_index
 from policy.retriever import PolicyRetriever
 
@@ -42,9 +42,16 @@ def generate_planning_assessment(
     """Generate a draft response for a single planning application."""
     cfg = ModelConfig.from_env()
     retriever = PolicyRetriever(cfg)
-    decision = asyncio.run(run_case(application_name, cfg, retriever))
-    output = write_outputs(application_name, decision)
-    typer.echo(decision.to_markdown(batch_name=application_name, local_authority="Doncaster Council"))
+    result = asyncio.run(run_case_detailed(application_name, cfg, retriever))
+    output = write_outputs(application_name, result)
+    typer.echo(
+        result.decision.to_markdown(
+            batch_name=application_name, local_authority="Doncaster Council"
+        )
+    )
+    typer.echo(f"\n{result.guardrails.to_markdown()}")
+    if result.guardrails.requires_human_review:
+        typer.echo("NOTE: guardrails flagged this draft for mandatory officer review.")
     typer.echo(f"\nPrediction written to {output}")
 
 
@@ -62,9 +69,10 @@ def batch(
     async def _run_all() -> None:
         for case_id in targets:
             try:
-                decision = await run_case(case_id, cfg, retriever)
-                output = write_outputs(case_id, decision)
-                typer.echo(f"{case_id}: {decision.decision.value} -> {output}")
+                result = await run_case_detailed(case_id, cfg, retriever)
+                output = write_outputs(case_id, result)
+                review = " [REVIEW]" if result.guardrails.requires_human_review else ""
+                typer.echo(f"{case_id}: {result.decision.decision.value}{review} -> {output}")
             except Exception as error:  # noqa: BLE001 - keep the batch going
                 logger.error(f"{case_id} failed: {error}")
 

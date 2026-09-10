@@ -81,9 +81,11 @@ async def build_case_profile(
     text = _assemble_text(pack)
     return await complete_json(
         client,
-        cfg.chat_model,
+        cfg.profile_model,
         CaseProfile,
         system=_PROFILE_SYSTEM,
         user=f"Extract the case profile from the following documents:\n\n{text}",
         temperature=cfg.temperature,
+        seed=cfg.seed,
+        extra_body=cfg.provider_extra_body(),
     )

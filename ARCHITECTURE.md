@@ -1,9 +1,15 @@
 # Architecture proposal — augmented planning decision-making
 
-> Review document. No implementation code has been written yet. This expands the
-> agreed direction (embeddings RAG + vision on plans) into a concrete design,
-> module layout, function signatures, and a draft `REPORT.md` method section for
-> sign-off before building.
+> **Status: original pre-build design proposal.** `REPORT.md` is the authoritative
+> description of the system as built. This document is kept for provenance — it shows
+> the design reasoning before implementation. The build kept the staged pipeline and
+> the deterministic decision boundary described here, and went further in four areas:
+> retrieval became **iterative** (MMR diversity + a `policy_lookup` citation tool)
+> rather than single-pass; the plan **vision pass rasterises the vector-CAD sheets
+> with PyMuPDF** (they carry no embedded raster images, so `doc.get_images()` returns
+> nothing); a substantive **guardrail layer** (`src/guardrails.py`) was added; and
+> **model choice is per-component** with committed evaluation evidence under
+> `evaluation/`.
 
 ---
 
@@ -306,18 +312,22 @@ src/
     index.py              # (new) build + persist the policy embedding index
     retriever.py          # (new) cosine-similarity search → PolicyChunk[]
   assessment/
-    profile.py            # (new) text + vision → CaseProfile
-    agent.py              # (new) openai-agents theme-by-theme assessment
-    schema.py             # (new) ThemeAssessment / CaseAssessment / enums
-    synthesize.py         # (new) CaseAssessment + profile → Decision
-  llm.py                  # (new) AsyncOpenAI(OpenRouter) client + ModelConfig
+    profile.py            # text → CaseProfile
+    vision.py             # rasterise plans (PyMuPDF) → PlanReadout, merge into profile
+    agent.py              # iterative theme-by-theme assessment (search + lookup tools)
+    schema.py             # ThemeAssessment / CaseAssessment / enums
+    synthesize.py         # CaseAssessment + profile → Decision
+  guardrails.py           # scope/grounding/consistency/approval-bias/abstention checks
+  llm.py                  # AsyncOpenAI(OpenRouter) client + per-component ModelConfig
   parser/                 # (unchanged) existing PDF parser
   tools/                  # (unchanged) geospatial lookup
-  evaluator/              # (unchanged; add dev-eval script under scripts/)
+  evaluator/              # (unchanged) provided scorer, driven by scripts/evaluate_dev.py
   decision.py             # (unchanged) Decision output model
 scripts/
-  evaluate_dev.py         # (new) score pipeline on cases 001–005
+  evaluate_dev.py         # score pipeline on cases 001–005; writes evaluation/runs/
   validate_submission.py  # (unchanged) provided validator
+tests/                    # deterministic (no-API) unit tests
+evaluation/               # committed evaluation evidence (traces, metrics, error analysis)
 ```
 
 ---

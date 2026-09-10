@@ -49,6 +49,9 @@ class CaseDocument(BaseModel):
 
     doc_type: DocType
     filename: str
+    source_path: Path = Field(
+        ..., description="Path to the original PDF, used to rasterise plan drawings"
+    )
     document: PdfDocument
     is_plan: bool = Field(
         default=False, description="Whether this is a drawing (elevation/site/floor plan)"
@@ -248,6 +251,7 @@ async def load_case_pack(case_dir: Path) -> CasePack:
             CaseDocument(
                 doc_type=doc_type,
                 filename=path.name,
+                source_path=path,
                 document=document,
                 is_plan=doc_type in PLAN_TYPES,
             )

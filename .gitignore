@@ -217,9 +217,16 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Planning tool: cached policy index and generated officer drafts
+# Planning tool: cached policy index (large, regenerable build artifact; NOT eval evidence)
 .policy_index/
-drafts/
 
-# Planning tool: pre-extracted PDF JSON from `uv run parser`
+# Planning tool: pre-extracted PDF JSON from `uv run parser` (large, regenerable cache)
 data/extracted/
+
+# Planning tool: evaluation evidence and officer drafts MUST stay in the submission.
+# Reviewers can only judge what is committed, so force-include eval traces, logs,
+# metrics and drafts even though the global rules above ignore *.log etc.
+!evaluation/
+!evaluation/**
+!drafts/
+!drafts/**
