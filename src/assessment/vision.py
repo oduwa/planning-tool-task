@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pymupdf
 from loguru import logger
 from openai import AsyncOpenAI
 
@@ -51,7 +50,19 @@ def _render_plan_images(pack: CasePack, max_pages: int) -> list[str]:
 
     Returns:
         A list of ``data:image/png;base64,...`` URIs in document order.
+
+    Raises:
+        RuntimeError: If PyMuPDF is not installed but rasterisation is needed.
     """
+    try:
+        import pymupdf
+    except ImportError as error:  # pragma: no cover - environment dependent
+        raise RuntimeError(
+            "PyMuPDF is required to rasterise plan drawings for the vision pass. "
+            "Install project dependencies with `uv sync`, or disable vision by "
+            "setting PLANNING_ENABLE_VISION=0."
+        ) from error
+
     uris: list[str] = []
     for doc in pack.plans:
         if len(uris) >= max_pages:
