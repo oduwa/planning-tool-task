@@ -8,7 +8,7 @@ folder goes in; a `Decision` (the required JSON), an officer-facing markdown dra
 and a guardrail report come out.
 
 ```
-ingest → profile (text) → plan vision pass → iterative policy assessment
+parse and ingest → process text → apply vision pass → iterative policy assessment
        → deterministic synthesis → guardrails → Decision + draft + audit trail
 ```
 
@@ -34,7 +34,7 @@ detectable policy reference (e.g. "Policy 44", "NPPF paragraph 135"), embedded w
 **local** model (`BAAI/bge-small-en-v1.5`), and cached to disk as a numpy
 matrix plus a JSONL sidecar — **persistent indexing** built once and reused.
 
-Retrieval is not a single-pass top-k lookup:
+Retrieval is as follows:
 
 - **`search`** re-ranks candidates with **Maximal Marginal Relevance** so repeated
   queries on a theme return *diverse* passages (different policies/documents) rather
@@ -109,7 +109,7 @@ will not be "upgraded" to a hosted model.
 
 Evaluation outputs can be found in`evaluation/`.
 
-### 2.1 What we measure, and why
+### 2.1 What I measure, and why
 
 `scripts/evaluate_dev.py` runs the **full end-to-end pipeline** for each labelled case
 and writes a timestamped `evaluation/runs/<ts>/` containing `metrics.json`,
